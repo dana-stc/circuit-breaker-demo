@@ -1,0 +1,39 @@
+spring:
+  application:
+    name: circuit-breaker-demo
+
+resilience4j:
+  circuitbreaker:
+    instances:
+      pricing:                                   # name used in @CircuitBreaker(name = "pricing")
+        slidingWindowType: COUNT_BASED           # look at the last N calls (not a time window)
+        slidingWindowSize: 10                    # N = 10
+        minimumNumberOfCalls: 5                  # don't judge before 5 calls were recorded
+        failureRateThreshold: 50                 # open when >= 50% of calls failed
+        slowCallDurationThreshold: 1s            # a call slower than 1s counts as "slow"
+        slowCallRateThreshold: 80                # open when >= 80% of calls are slow
+        waitDurationInOpenState: 10s             # stay OPEN for 10s, then try again
+        automaticTransitionFromOpenToHalfOpenEnabled: true
+        permittedNumberOfCallsInHalfOpenState: 3 # trial calls allowed in HALF_OPEN
+        recordExceptions:                        # these count as failures
+          - com.example.circuitbreaker.client.RemoteServiceException
+          - java.util.concurrent.TimeoutException
+        ignoreExceptions:                        # business errors: NOT a sign of a sick service
+          - java.lang.IllegalArgumentException
+        registerHealthIndicator: true
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,circuitbreakers,circuitbreakerevents
+  health:
+    circuitbreakers:
+      enabled: true
+  endpoint:
+    health:
+      show-details: always
+
+logging:
+  level:
+    com.example.circuitbreaker: INFO
